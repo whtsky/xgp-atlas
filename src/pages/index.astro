@@ -1,0 +1,85 @@
+---
+import { catalogPath, localeDetectionRules } from '../i18n';
+import { getPathFromLocale } from '../i18n/locales';
+import { defaultMarket, getMarketConfig, marketRegistry } from '../domain/markets';
+
+const fallbackMarket = getMarketConfig(defaultMarket);
+const fallbackDestination = catalogPath(fallbackMarket.code, fallbackMarket.defaultLocale);
+const marketRules = marketRegistry.map(({ code, defaultLocale, path }) => ({
+  code,
+  defaultLocalePath: getPathFromLocale(defaultLocale),
+  path,
+}));
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,follow" />
+    <link rel="canonical" href={fallbackDestination} />
+    <title>XGP Atlas</title>
+    <script
+      is:inline
+      define:vars={{ fallbackMarketCode: fallbackMarket.code, localeDetectionRules, marketRules }}
+    >
+      let storedLocale;
+      let storedMarket;
+      try {
+        storedLocale = window.localStorage.getItem('xgp-atlas-locale');
+        storedMarket = window.localStorage.getItem('xgp-atlas-market');
+      } catch {
+        // Storage is optional in privacy-restricted browser contexts.
+      }
+
+      const knownLocalePaths = new Set(localeDetectionRules.map((rule) => rule.path));
+      const exactLocale = (language) => {
+        const normalized = language.toLowerCase();
+        return localeDetectionRules.find((rule) =>
+          rule.aliases.some((alias) => alias.toLowerCase() === normalized),
+        )?.path;
+      };
+      const closestLocale = (language) => {
+        const normalized = language.toLowerCase();
+        if (normalized === 'en' || normalized.startsWith('en-')) return 'en';
+        if (normalized === 'de' || normalized.startsWith('de-')) return 'de';
+        if (normalized === 'ja' || normalized.startsWith('ja-')) return 'ja';
+        if (normalized === 'zh' || normalized.startsWith('zh-')) {
+          return /(?:hant|-(?:hk|mo|tw))(?:-|$)/.test(normalized) ? 'zh-hant' : 'zh-hans';
+        }
+        return undefined;
+      };
+
+      const languages = window.navigator.languages ?? [window.navigator.language];
+      let selectedMarket = marketRules.find(({ code }) => code === storedMarket);
+      if (selectedMarket === undefined) {
+        for (const language of languages) {
+          let region;
+          try {
+            region = new Intl.Locale(language).maximize().region;
+          } catch {
+            continue;
+          }
+          selectedMarket = marketRules.find(({ code }) => code === region);
+          if (selectedMarket !== undefined) break;
+        }
+      }
+      selectedMarket ??= marketRules.find(({ code }) => code === fallbackMarketCode);
+
+      let selectedLocale = knownLocalePaths.has(storedLocale) ? storedLocale : undefined;
+      for (const language of languages) {
+        selectedLocale ??= exactLocale(language) ?? closestLocale(language);
+      }
+      selectedLocale ??= selectedMarket.defaultLocalePath;
+
+      window.location.replace(
+        `/${selectedMarket.path}/${selectedLocale}/${window.location.search}${window.location.hash}`,
+      );
+    </script>
+    <noscript><meta http-equiv="refresh" content={`0;url=${fallbackDestination}`} /></noscript>
+  </head>
+  <body>
+    <p><a href={fallbackDestination}>Continue to XGP Atlas</a></p>
+  </body>
+</html>

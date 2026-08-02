@@ -1,0 +1,146 @@
+---
+import '../styles/global.css';
+
+import {
+  catalogPath,
+  getCatalogAlternates,
+  getPathFromLocale,
+  getTranslations,
+  localeConfig,
+  localePaths,
+} from '../i18n';
+import type { MarketCode, SupportedLocale } from '../domain/catalog';
+import { getPathFromMarket } from '../domain/markets';
+import { defaultSiteUrl } from '../config/site';
+import { SiteHeader } from '../components/SiteHeader';
+
+interface Props {
+  canonicalRoute: string;
+  description: string;
+  image?: string | null;
+  jsonLd?: Record<string, unknown> | Array<Record<string, unknown>>;
+  locale: SupportedLocale;
+  market: MarketCode;
+  title: string;
+}
+
+const { canonicalRoute, description, image = null, jsonLd, locale, market, title } = Astro.props;
+const t = getTranslations(locale);
+const site = Astro.site ?? new URL(defaultSiteUrl);
+const localePath = getPathFromLocale(locale);
+const marketPath = getPathFromMarket(market);
+const canonical = new URL(catalogPath(market, locale, canonicalRoute), site);
+const alternates = getCatalogAlternates(canonicalRoute, site);
+const currentConfig = localeConfig[localePath];
+---
+
+<!doctype html>
+<html
+  lang={currentConfig.htmlLang}
+  dir={currentConfig.direction}
+  data-theme="light"
+  data-locale-path={localePath}
+  data-market-path={marketPath}
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7f8f7" />
+    <script is:inline>
+      (() => {
+        let theme = 'light';
+        try {
+          if (window.localStorage.getItem('xgp-atlas-theme') === 'dark') theme = 'dark';
+        } catch {
+          // Light mode remains the default when preference storage is unavailable.
+        }
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+        document
+          .querySelector('meta[name="theme-color"]')
+          ?.setAttribute('content', theme === 'dark' ? '#151a18' : '#f7f8f7');
+      })();
+    </script>
+    <meta name="description" content={description} />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <script
+      is:inline
+      defer
+      src="https://u.whtsky.me/script.js"
+      data-website-id="9662237f-fb19-4f2f-b6e4-ad5c87650288"></script>
+    <title>{title}</title>
+    <link rel="canonical" href={canonical} />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    {
+      alternates.map(({ href, hreflang }) => (
+        <link rel="alternate" href={href} hreflang={hreflang} />
+      ))
+    }
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={t['site.name']} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={currentConfig.ogLocale} />
+    {
+      localePaths
+        .filter((path) => path !== localePath)
+        .map((path) => (
+          <meta property="og:locale:alternate" content={localeConfig[path].ogLocale} />
+        ))
+    }
+    <meta name="twitter:card" content={image === null ? 'summary' : 'summary_large_image'} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {image !== null && <meta property="og:image" content={image} />}
+    {image !== null && <meta name="twitter:image" content={image} />}
+    {
+      jsonLd !== undefined && (
+        <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+      )
+    }
+  </head>
+  <body>
+    <SiteHeader {canonicalRoute} {locale} {market} client:load />
+    <script is:inline define:vars={{ market }}>
+      const currentLocalePath = document.documentElement.dataset.localePath;
+      if (currentLocalePath !== undefined) {
+        try {
+          window.localStorage.setItem('xgp-atlas-locale', currentLocalePath);
+          window.localStorage.setItem('xgp-atlas-market', market);
+        } catch {
+          // The page remains usable when preference storage is unavailable.
+        }
+      }
+    </script>
+    <main>
+      <slot />
+    </main>
+    <footer class="border-t border-zinc-200 py-8 dark:border-white/8">
+      <div
+        class="mx-auto flex max-w-[1500px] flex-col gap-2 px-4 text-xs text-zinc-500 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8 dark:text-zinc-500"
+      >
+        <p>{t['site.name']} · {t['site.description']}</p>
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <a
+            class="font-medium text-zinc-700 transition hover:text-emerald-700 dark:text-zinc-400 dark:hover:text-emerald-400"
+            href="https://blog.whtsky.me"
+            rel="me noreferrer"
+            target="_blank"
+          >
+            Made by whtsky :)
+          </a>
+          <span aria-hidden="true" class="text-zinc-300 dark:text-zinc-700">·</span>
+          <a
+            class="transition hover:text-zinc-900 dark:hover:text-zinc-300"
+            href="https://www.xbox.com/xbox-game-pass/games"
+            rel="noreferrer"
+            target="_blank"
+          >
+            {t['nav.source']}: Xbox
+          </a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

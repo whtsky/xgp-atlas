@@ -1,0 +1,105 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+:root {
+  color-scheme: light;
+  font-family: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  background: #f7f8f7;
+  color: #18181b;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+html {
+  min-width: 320px;
+  scroll-behavior: smooth;
+  background: #f7f8f7;
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+  background: #151a18;
+  color: #f4f4f5;
+}
+
+body {
+  min-height: 100dvh;
+  margin: 0;
+  background: radial-gradient(circle at 78% -18%, rgb(16 185 129 / 7%), transparent 30rem), #f7f8f7;
+}
+
+html[data-theme='dark'] body {
+  background: radial-gradient(circle at 78% -18%, rgb(49 130 91 / 12%), transparent 30rem), #151a18;
+}
+
+.font-mono,
+code,
+kbd {
+  font-family: 'Geist Mono Variable', ui-monospace, monospace;
+}
+
+::selection {
+  background: rgb(16 185 129 / 24%);
+  color: #18181b;
+}
+
+html[data-theme='dark'] ::selection {
+  background: rgb(52 211 153 / 28%);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid rgb(16 185 129 / 85%);
+  outline-offset: 3px;
+}
+
+:where(
+  a[href],
+  button:not(:disabled),
+  summary,
+  select:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='menuitem']:not([aria-disabled='true']),
+  [role='option']:not([aria-disabled='true'])
+) {
+  cursor: pointer;
+}
+
+:where(button:disabled, select:disabled, [aria-disabled='true'], [data-disabled]) {
+  cursor: not-allowed;
+}
+
+.catalog-card {
+  contain: layout paint;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 330px;
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.astro/
+.vite/
+.DS_Store
+*.log
+.catalog-sync.lock
+public/catalog-manifest.json
+public/p.[0-9a-f]*.json
+public/[a-z][a-z].[0-9a-f]*.json

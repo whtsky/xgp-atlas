@@ -1,0 +1,48 @@
+---
+import { CatalogExplorer } from '../../../components/CatalogExplorer';
+import { defaultSiteUrl } from '../../../config/site';
+import { groupCatalogGames } from '../../../domain/catalog-groups';
+import { loadActiveCatalog } from '../../../domain/catalog-repository';
+import { composeClientMarketCatalog } from '../../../domain/catalog-summary';
+import { getMarketFromPath, marketRegistry } from '../../../domain/markets';
+import { catalogPath, getLocaleFromPath, getTranslations, localePaths } from '../../../i18n';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+
+export const getStaticPaths = () =>
+  marketRegistry.flatMap((market) =>
+    localePaths.map((locale) => ({ params: { locale, market: market.path } })),
+  );
+
+const marketPath = Astro.params.market;
+const localePath = Astro.params.locale;
+if (marketPath === undefined || localePath === undefined) {
+  throw new Error('Missing market or locale path');
+}
+const market = getMarketFromPath(marketPath);
+const locale = getLocaleFromPath(localePath);
+const t = getTranslations(locale);
+const { manifest, overlay, products } = await loadActiveCatalog(market, locale);
+const summary = composeClientMarketCatalog(products, overlay);
+const groupedSummary = groupCatalogGames(summary);
+const initialGames = groupedSummary.slice(0, 48).flatMap(({ variants }) => variants);
+const marketLabel = t[`market.${market}`];
+const title = `${t['seo.catalogTitle']} — ${marketLabel} · ${t['site.name']}`;
+const description = t['seo.catalogDescription'];
+const site = Astro.site ?? new URL(defaultSiteUrl);
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  description,
+  mainEntity: {
+    '@type': 'ItemList',
+    numberOfItems: groupedSummary.length,
+  },
+  name: title,
+  url: new URL(catalogPath(market, locale), site).toString(),
+};
+---
+
+<BaseLayout canonicalRoute="/" {description} {jsonLd} {locale} {market} {title}>
+  <h1 class="sr-only">{t['hero.title']}</h1>
+  <CatalogExplorer {initialGames} initialMarket={market} {locale} {manifest} client:load />
+</BaseLayout>
