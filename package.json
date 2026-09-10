@@ -20,7 +20,7 @@
   },
   "license": "UNLICENSED",
   "engines": {
-    "node": ">=24"
+    "node": ">=24.0.2"
   },
   "dependencies": {
     "@astrojs/react": "^6.0.2",
